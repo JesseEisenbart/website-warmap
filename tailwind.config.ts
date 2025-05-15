@@ -1,5 +1,6 @@
 import type { Config } from 'tailwindcss';
 import animate from 'tailwindcss-animate';
+import plugin from 'tailwindcss/plugin';
 
 export default {
 	darkMode: 'class',
@@ -73,5 +74,11 @@ export default {
 			},
 		},
 	},
-	plugins: [animate],
+	plugins: [
+		animate,
+		plugin(function({ addVariant }) {
+			// Add a `day-group-hover` variant
+			addVariant('day-group-hover', '.day-group:hover &');
+		}),
+	],
 } satisfies Config;

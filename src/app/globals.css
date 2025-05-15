@@ -119,3 +119,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom utility classes */
+.day-group-hover\:opacity-100:where(.day-group:hover *) {
+  opacity: 1;
+}

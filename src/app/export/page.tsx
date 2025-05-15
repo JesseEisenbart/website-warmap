@@ -29,8 +29,7 @@ export default function ExportPage() {
 												PDF Export
 											</h3>
 											<p className='text-sm text-gray-500'>
-												Export your dashboard as a PDF
-												file
+												Export your macro as a PDF file
 											</p>
 										</div>
 									</div>

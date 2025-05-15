@@ -66,10 +66,13 @@ export function GoalItem({
 			)}
 			onMouseEnter={() => setIsHovered(true)}
 			onMouseLeave={() => setIsHovered(false)}
+			data-goal-title={goal.title}
 		>
 			<div
 				{...dragHandleProps}
-				className='cursor-grab p-1 text-gray-400 hover:text-gray-600'
+				className='cursor-grab p-1 text-gray-400 hover:text-gray-600 drag-handle'
+				draggable='true'
+				data-drag-handle-id={goal.id}
 			>
 				<GripVertical size={16} />
 			</div>

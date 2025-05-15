@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useRef } from 'react';
 import { Goal } from '@/components/goal-item';
 
 interface GoalsState {
@@ -21,52 +21,56 @@ interface GoalsContextType {
 const GoalsContext = createContext<GoalsContextType | undefined>(undefined);
 
 // Helper to generate unique IDs
-const generateId = () => `goal_${Math.random().toString(36).substr(2, 9)}`;
+const generateId = () =>
+	`goal_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
 export function GoalsProvider({ children }: { children: ReactNode }) {
-	const [goals, setGoals] = useState<GoalsState>({
+	// Use useRef with an initialization function to prevent regenerating IDs on re-renders
+	const initialGoals = useRef<GoalsState>({
 		q1: [
 			{
-				id: generateId(),
+				id: 'goal_q1_1',
 				title: 'Register cosmetic form with Canada',
 				completed: false,
 			},
 			{
-				id: generateId(),
+				id: 'goal_q1_2',
 				title: 'Launch new product line',
 				completed: false,
 			},
 		],
 		q2: [
 			{
-				id: generateId(),
+				id: 'goal_q2_1',
 				title: 'Expand to international markets',
 				completed: false,
 			},
 		],
 		q3: [
 			{
-				id: generateId(),
+				id: 'goal_q3_1',
 				title: 'Review Q1 and Q2 performance',
 				completed: false,
 			},
 		],
 		q4: [
 			{
-				id: generateId(),
+				id: 'goal_q4_1',
 				title: 'Prepare annual report',
 				completed: false,
 			},
 			{
-				id: generateId(),
+				id: 'goal_q4_2',
 				title: 'Plan next year strategy',
 				completed: false,
 			},
 		],
-	});
+	}).current;
+
+	const [goals, setGoals] = useState<GoalsState>(initialGoals);
 
 	const addGoal = (quarterId: string, title: string) => {
-		setGoals((prevGoals) => {
+		setGoals((prevGoals: GoalsState) => {
 			const quarterGoals = prevGoals[quarterId] || [];
 			return {
 				...prevGoals,
@@ -79,7 +83,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 	};
 
 	const updateGoalOrder = (quarterId: string, reorderedGoals: Goal[]) => {
-		setGoals((prevGoals) => ({
+		setGoals((prevGoals: GoalsState) => ({
 			...prevGoals,
 			[quarterId]: reorderedGoals,
 		}));
@@ -90,11 +94,11 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 		goalId: string,
 		completed: boolean
 	) => {
-		setGoals((prevGoals) => {
+		setGoals((prevGoals: GoalsState) => {
 			const quarterGoals = prevGoals[quarterId] || [];
 			return {
 				...prevGoals,
-				[quarterId]: quarterGoals.map((goal) =>
+				[quarterId]: quarterGoals.map((goal: Goal) =>
 					goal.id === goalId ? { ...goal, completed } : goal
 				),
 			};

@@ -6,7 +6,7 @@ import { ColorKey } from '@/components/color-key';
 import { ColorProvider } from '@/contexts/ColorContext';
 import { GoalsProvider } from '@/contexts/GoalsContext';
 
-export default function DashboardPage() {
+export default function MacroPage() {
 	// Sample data for the quarters and goals
 	const quarters = [
 		{
@@ -42,9 +42,7 @@ export default function DashboardPage() {
 
 					{/* Main content - flexible width */}
 					<div className='flex-grow h-full overflow-auto bg-white p-6'>
-						<h1 className='mb-8 text-2xl font-bold'>
-							2025 Dashboard
-						</h1>
+						<h1 className='mb-8 text-2xl font-bold'>2025 Macro</h1>
 
 						{/* Quarters */}
 						{quarters.map((quarter) => (

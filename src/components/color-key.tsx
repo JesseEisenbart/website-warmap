@@ -27,7 +27,6 @@ export function ColorKey() {
 			<h3 className='mb-4 font-medium'>Key</h3>
 
 			<div className='mb-4'>
-				<h4 className='mb-2 text-sm font-medium'>Custom Colors</h4>
 				<div className='space-y-2'>
 					{colors.map((color, index) => (
 						<div
@@ -67,7 +66,7 @@ export function ColorKey() {
 					size='sm'
 				>
 					<PlusIcon className='h-4 w-4 mr-2' />
-					Add New Color
+					Add New Key
 				</Button>
 			</div>
 

@@ -32,14 +32,28 @@ export function GoalList({
 		);
 	}, [quarterId, goals]);
 
+	// Add necessary polyfill for React 19 compatibility
+	useEffect(() => {
+		// Ensure the drag and drop functionality works with React 19
+		document.querySelectorAll('[data-rbd-draggable-id]').forEach((el) => {
+			el.setAttribute('draggable', 'true');
+		});
+	}, [goals]);
+
+	const handleDragEnd = (result: DropResult) => {
+		console.log('Drag ended:', result);
+		onDragEnd(result);
+	};
+
 	return (
-		<DragDropContext onDragEnd={onDragEnd}>
+		<DragDropContext onDragEnd={handleDragEnd}>
 			<Droppable droppableId={`goals-${quarterId}`}>
 				{(provided) => (
 					<div
 						{...provided.droppableProps}
 						ref={provided.innerRef}
 						className='mb-2'
+						data-goals-list-id={quarterId}
 					>
 						{goals.map((goal, index) => (
 							<Draggable
@@ -51,6 +65,8 @@ export function GoalList({
 									<div
 										ref={provided.innerRef}
 										{...provided.draggableProps}
+										data-goal-id={goal.id}
+										data-goal-index={index}
 									>
 										<GoalItem
 											goal={goal}
@@ -68,32 +84,5 @@ export function GoalList({
 				)}
 			</Droppable>
 		</DragDropContext>
-	);
-}
-
-// Separate component to handle the Draggable element
-interface GoalItemWrapperProps {
-	goal: Goal;
-	index: number;
-	onCompleteChange: (goalId: string, completed: boolean) => void;
-}
-
-function GoalItemWrapper({
-	goal,
-	index,
-	onCompleteChange,
-}: GoalItemWrapperProps) {
-	return (
-		<Draggable draggableId={goal.id} index={index} isDragDisabled={false}>
-			{(provided) => (
-				<div ref={provided.innerRef} {...provided.draggableProps}>
-					<GoalItem
-						goal={goal}
-						onCompleteChange={onCompleteChange}
-						dragHandleProps={provided.dragHandleProps}
-					/>
-				</div>
-			)}
-		</Draggable>
 	);
 }
