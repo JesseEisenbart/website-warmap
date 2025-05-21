@@ -43,7 +43,7 @@ export function SimpleGoalList({
 			{goals.map((goal, index) => (
 				<div
 					key={goal.id}
-					className='group flex items-center border border-transparent hover:border-gray-200 rounded-md'
+					className='group flex items-center border-gray-200 hover:border-gray-400 rounded-md'
 				>
 					<div className='flex-grow'>
 						<GoalItem

@@ -14,6 +14,8 @@ interface GoalListProps {
 	quarterId: string;
 	onDragEnd: (result: DropResult) => void;
 	onCompleteChange: (goalId: string, completed: boolean) => void;
+	onDelete?: (goalId: string) => void;
+	hideActions?: boolean;
 }
 
 export function GoalList({
@@ -21,6 +23,8 @@ export function GoalList({
 	quarterId,
 	onDragEnd,
 	onCompleteChange,
+	onDelete,
+	hideActions = false,
 }: GoalListProps) {
 	// Debug log
 	useEffect(() => {
@@ -52,34 +56,42 @@ export function GoalList({
 					<div
 						{...provided.droppableProps}
 						ref={provided.innerRef}
-						className='mb-2'
+						className='rounded-md overflow-hidden bg-white border border-gray-200'
 						data-goals-list-id={quarterId}
 					>
-						{goals.map((goal, index) => (
-							<Draggable
-								key={goal.id}
-								draggableId={goal.id}
-								index={index}
-							>
-								{(provided) => (
-									<div
-										ref={provided.innerRef}
-										{...provided.draggableProps}
-										data-goal-id={goal.id}
-										data-goal-index={index}
-									>
-										<GoalItem
-											goal={goal}
-											onCompleteChange={onCompleteChange}
-											dragHandleProps={
-												provided.dragHandleProps
-											}
-										/>
-									</div>
-								)}
-							</Draggable>
-						))}
-						{provided.placeholder}
+						<div className='bg-white'>
+							{goals.map((goal, index) => (
+								<Draggable
+									key={goal.id}
+									draggableId={goal.id}
+									index={index}
+								>
+									{(provided) => (
+										<div
+											ref={provided.innerRef}
+											{...provided.draggableProps}
+											data-goal-id={goal.id}
+											data-goal-index={index}
+											className='border-b border-gray-100 last:border-0 flex items-center'
+										>
+											<GoalItem
+												goal={goal}
+												onCompleteChange={
+													onCompleteChange
+												}
+												dragHandleProps={
+													provided.dragHandleProps ??
+													undefined
+												}
+												onDelete={onDelete}
+												hideActions={hideActions}
+											/>
+										</div>
+									)}
+								</Draggable>
+							))}
+							{provided.placeholder}
+						</div>
 					</div>
 				)}
 			</Droppable>

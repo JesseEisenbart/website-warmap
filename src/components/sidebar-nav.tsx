@@ -3,13 +3,14 @@ import {
 	BarChart2,
 	LineChart,
 	LogOut,
-	Settings,
 	UserCircle,
 	CalendarDays,
+	Calendar,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { SettingsDialog } from './settings-dialog';
 
 export function SidebarNav() {
 	return (
@@ -29,6 +30,16 @@ export function SidebarNav() {
 						<Link href='/macro'>
 							<BarChart2 className='mr-2 h-5 w-5' />
 							Macro
+						</Link>
+					</Button>
+					<Button
+						asChild
+						variant='ghost'
+						className='justify-start text-white hover:bg-gray-800'
+					>
+						<Link href='/daily'>
+							<Calendar className='mr-2 h-5 w-5' />
+							Daily
 						</Link>
 					</Button>
 					<Button
@@ -66,16 +77,7 @@ export function SidebarNav() {
 			<Separator className='bg-gray-700' />
 			<div className='py-2'>
 				<nav className='grid gap-1 px-2'>
-					<Button
-						asChild
-						variant='ghost'
-						className='justify-start text-white hover:bg-gray-800'
-					>
-						<Link href='/settings'>
-							<Settings className='mr-2 h-5 w-5' />
-							Settings
-						</Link>
-					</Button>
+					<SettingsDialog />
 					<Button
 						asChild
 						variant='ghost'

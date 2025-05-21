@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { ChevronLeft, ChevronRight, Plus, Zap } from 'lucide-react';
 import {
 	format,
 	startOfMonth,
@@ -10,21 +10,58 @@ import {
 	isSameMonth,
 	addMonths,
 	subMonths,
+	parse,
 } from 'date-fns';
 import { useTasks, Task } from '@/contexts/TasksContext';
 import { TaskItem } from './task-item';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { cn } from '@/lib/utils';
+import { useColors } from '@/contexts/ColorContext';
 import {
 	DragDropContext,
 	Droppable,
 	Draggable,
 	DropResult,
+	DraggableProvidedDraggableProps,
 } from '@hello-pangea/dnd';
 
-export function MonthlyCalendar() {
-	const [currentDate, setCurrentDate] = useState(new Date('2025-05-01'));
+// Optimize drag performance with a custom wrapper
+const getItemStyle = (
+	isDragging: boolean,
+	draggableStyle?: DraggableProvidedDraggableProps['style']
+) => ({
+	// some basic styles to make the items look nicer
+	userSelect: 'none' as const,
+
+	// change background colour if dragging
+	background: isDragging ? 'white' : 'transparent',
+
+	// styles we need to apply on draggables
+	...draggableStyle,
+	// Override transition to make it faster
+	transition: isDragging ? 'transform 0.05s' : undefined,
+});
+
+interface MonthlyCalendarProps {
+	initialDate?: string | null;
+}
+
+export function MonthlyCalendar({ initialDate }: MonthlyCalendarProps) {
+	const defaultDate = new Date('2025-05-01');
+	const [currentDate, setCurrentDate] = useState<Date>(() => {
+		if (initialDate) {
+			try {
+				// Try to parse the date string
+				return parse(initialDate, 'yyyy-MM-dd', new Date());
+			} catch (error) {
+				console.error('Failed to parse initialDate:', error);
+				return defaultDate;
+			}
+		}
+		return defaultDate;
+	});
+
 	const [newTaskText, setNewTaskText] = useState<{ [key: string]: string }>(
 		{}
 	);
@@ -39,43 +76,67 @@ export function MonthlyCalendar() {
 		updateTaskCompletion,
 		updateTaskTitle,
 		moveTask,
+		updateTaskType,
 	} = useTasks();
+	const { getDayColorsForMonth } = useColors();
 
-	// Generate all days in the current month
-	const firstDay = startOfMonth(currentDate);
-	const lastDay = endOfMonth(currentDate);
-	const daysInMonth = eachDayOfInterval({ start: firstDay, end: lastDay });
-
-	// Get day of week for the first day (0 = Sunday, 1 = Monday, etc.)
-	const startDayOfWeek = firstDay.getDay();
-
-	// Create placeholder days for leading empty cells
-	const leadingDays = Array.from({ length: startDayOfWeek }, (_, i) => {
-		const date = new Date(firstDay);
-		date.setDate(date.getDate() - (startDayOfWeek - i));
-		return date;
-	});
-
-	// Create placeholder days for trailing empty cells
-	const totalCells =
-		Math.ceil((leadingDays.length + daysInMonth.length) / 7) * 7;
-	const trailingDays = Array.from(
-		{ length: totalCells - (leadingDays.length + daysInMonth.length) },
-		(_, i) => {
-			const date = new Date(lastDay);
-			date.setDate(date.getDate() + i + 1);
-			return date;
+	// Update current date if initialDate prop changes
+	useEffect(() => {
+		if (initialDate) {
+			try {
+				const parsedDate = parse(initialDate, 'yyyy-MM-dd', new Date());
+				setCurrentDate(parsedDate);
+			} catch (error) {
+				console.error('Failed to parse initialDate:', error);
+			}
 		}
-	);
+	}, [initialDate]);
 
-	// All days to display in the calendar grid
-	const allDays = [...leadingDays, ...daysInMonth, ...trailingDays];
+	// Memoize the getDaysForMonth calculation to avoid recalculating on every render
+	const allDaysWithWeeks = useMemo(() => {
+		// Generate all days in the current month
+		const firstDay = startOfMonth(currentDate);
+		const lastDay = endOfMonth(currentDate);
+		const daysInMonth = eachDayOfInterval({
+			start: firstDay,
+			end: lastDay,
+		});
 
-	// Group days into weeks
-	const weeks = [];
-	for (let i = 0; i < allDays.length; i += 7) {
-		weeks.push(allDays.slice(i, i + 7));
-	}
+		// Get day of week for the first day (0 = Sunday, 1 = Monday, etc.)
+		const startDayOfWeek = firstDay.getDay();
+
+		// Create placeholder days for leading empty cells
+		const leadingDays = Array.from({ length: startDayOfWeek }, (_, i) => {
+			const date = new Date(firstDay);
+			date.setDate(date.getDate() - (startDayOfWeek - i));
+			return date;
+		});
+
+		// Create placeholder days for trailing empty cells
+		const totalCells =
+			Math.ceil((leadingDays.length + daysInMonth.length) / 7) * 7;
+		const trailingDays = Array.from(
+			{ length: totalCells - (leadingDays.length + daysInMonth.length) },
+			(_, i) => {
+				const date = new Date(lastDay);
+				date.setDate(date.getDate() + i + 1);
+				return date;
+			}
+		);
+
+		// All days to display in the calendar grid
+		const allDays = [...leadingDays, ...daysInMonth, ...trailingDays];
+
+		// Group days into weeks
+		const weeks = [];
+		for (let i = 0; i < allDays.length; i += 7) {
+			weeks.push(allDays.slice(i, i + 7));
+		}
+
+		return { weeks, allDays };
+	}, [currentDate]);
+
+	const { weeks } = allDaysWithWeeks;
 
 	const handlePrevMonth = () => {
 		setCurrentDate(subMonths(currentDate, 1));
@@ -94,7 +155,8 @@ export function MonthlyCalendar() {
 
 	const handleTaskSubmit = (dateStr: string) => {
 		if (newTaskText[dateStr]?.trim()) {
-			addTask(dateStr, newTaskText[dateStr]);
+			// Default to primary task type for new tasks in monthly view
+			addTask(dateStr, newTaskText[dateStr], 'primary');
 			setNewTaskText((prev) => ({
 				...prev,
 				[dateStr]: '',
@@ -122,8 +184,41 @@ export function MonthlyCalendar() {
 			return;
 		}
 
-		// Move the task to the new date
-		moveTask(draggableId, destination.droppableId);
+		// Get the source date for logging
+		const sourceDate = source.droppableId;
+
+		// Move the task to the new date at the specified index
+		moveTask(draggableId, destination.droppableId, destination.index);
+
+		// Log task movement for debugging
+		console.log(
+			`Moved task from ${sourceDate} to ${destination.droppableId}`
+		);
+	};
+
+	// Get the month name from the current date
+	const monthName = useMemo(() => {
+		return format(currentDate, 'MMM');
+	}, [currentDate]);
+
+	// Get month colors from ColorContext
+	const [dayColors, setDayColors] = useState<Record<number, string>>({});
+
+	// Load colors for the current month
+	useEffect(() => {
+		const savedColors = getDayColorsForMonth(monthName);
+		console.log(`Loading saved colors for ${monthName}:`, savedColors);
+		setDayColors(savedColors);
+	}, [monthName, getDayColorsForMonth]);
+
+	// Function to get color for a specific day
+	const getDayColor = (day: Date) => {
+		const dayOfMonth = day.getDate();
+		const isCurrentMonthDay = isSameMonth(day, currentDate);
+
+		if (!isCurrentMonthDay) return null;
+
+		return dayColors[dayOfMonth] || null;
 	};
 
 	return (
@@ -172,7 +267,10 @@ export function MonthlyCalendar() {
 					)}
 
 					{/* Calendar grid */}
-					<DragDropContext onDragEnd={handleDragEnd}>
+					<DragDropContext
+						onDragEnd={handleDragEnd}
+						enableDefaultSensors={true}
+					>
 						{weeks.map((week, weekIndex) => (
 							<React.Fragment key={`week-${weekIndex}`}>
 								{week.map((day, dayIndex) => {
@@ -183,16 +281,36 @@ export function MonthlyCalendar() {
 									);
 									const dayTasks = getTasksForDate(dateStr);
 									const isDayHovered = hoveredDay === dateStr;
+									const dayColor = getDayColor(day);
 
 									return (
 										<div
 											key={`${weekIndex}-${dayIndex}`}
 											className={cn(
-												'border-r border-b p-1 min-h-[150px] h-auto',
+												'border-r border-b p-1 min-h-[150px] h-auto flex flex-col',
 												isCurrentMonth
 													? 'bg-white'
-													: 'bg-gray-50'
+													: 'bg-gray-50',
+												// Add darker gray background for weekends (Sunday = 0, Saturday = 6)
+												(day.getDay() === 0 ||
+													day.getDay() === 6) &&
+													'bg-gray-100'
 											)}
+											style={
+												dayColor
+													? {
+															borderTop: `4px solid ${dayColor}`,
+															borderTopLeftRadius:
+																dayIndex === 0
+																	? '4px'
+																	: '0',
+															borderTopRightRadius:
+																dayIndex === 6
+																	? '4px'
+																	: '0',
+													  }
+													: {}
+											}
 											onMouseEnter={() =>
 												setHoveredDay(dateStr)
 											}
@@ -237,12 +355,62 @@ export function MonthlyCalendar() {
 											</div>
 
 											{/* Task list */}
-											<Droppable droppableId={dateStr}>
-												{(provided) => (
+											<Droppable
+												droppableId={dateStr}
+												renderClone={(
+													provided,
+													snapshot,
+													rubric
+												) => (
+													<div
+														ref={provided.innerRef}
+														{...provided.draggableProps}
+														{...provided.dragHandleProps}
+														style={{
+															...provided
+																.draggableProps
+																.style,
+															opacity: 0.8,
+															transition:
+																'transform 0.05s',
+														}}
+													>
+														<TaskItem
+															task={
+																dayTasks[
+																	rubric
+																		.source
+																		.index
+																]
+															}
+															onRemove={
+																removeTask
+															}
+															onCompletionChange={
+																updateTaskCompletion
+															}
+															onUpdateTitle={
+																updateTaskTitle
+															}
+															onUpdateTaskType={
+																updateTaskType
+															}
+														/>
+													</div>
+												)}
+											>
+												{(provided, snapshot) => (
 													<div
 														ref={provided.innerRef}
 														{...provided.droppableProps}
-														className='space-y-1'
+														className={cn(
+															'space-y-1 flex-grow flex flex-col',
+															snapshot.isDraggingOver &&
+																'rounded'
+														)}
+														style={{
+															minHeight: '100%',
+														}}
 													>
 														{dayTasks.map(
 															(task, index) => (
@@ -258,7 +426,8 @@ export function MonthlyCalendar() {
 																	}
 																>
 																	{(
-																		provided
+																		provided,
+																		snapshot
 																	) => (
 																		<div
 																			ref={
@@ -266,7 +435,28 @@ export function MonthlyCalendar() {
 																			}
 																			{...provided.draggableProps}
 																			{...provided.dragHandleProps}
+																			className={`relative ${
+																				snapshot.isDragging
+																					? 'opacity-70'
+																					: ''
+																			}`}
+																			style={getItemStyle(
+																				snapshot.isDragging,
+																				provided
+																					.draggableProps
+																					.style
+																			)}
 																		>
+																			{task.taskType ===
+																				'power' && (
+																				<div className='absolute top-1 right-2 text-yellow-500 z-10'>
+																					<Zap
+																						size={
+																							14
+																						}
+																					/>
+																				</div>
+																			)}
 																			<TaskItem
 																				task={
 																					task
@@ -279,6 +469,9 @@ export function MonthlyCalendar() {
 																				}
 																				onUpdateTitle={
 																					updateTaskTitle
+																				}
+																				onUpdateTaskType={
+																					updateTaskType
 																				}
 																			/>
 																		</div>

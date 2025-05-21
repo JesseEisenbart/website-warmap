@@ -10,6 +10,7 @@ interface GoalsState {
 interface GoalsContextType {
 	goals: GoalsState;
 	addGoal: (quarterId: string, title: string) => void;
+	removeGoal: (quarterId: string, goalId: string) => void;
 	updateGoalOrder: (quarterId: string, reorderedGoals: Goal[]) => void;
 	updateGoalCompletion: (
 		quarterId: string,
@@ -82,6 +83,18 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 		});
 	};
 
+	const removeGoal = (quarterId: string, goalId: string) => {
+		setGoals((prevGoals: GoalsState) => {
+			const quarterGoals = prevGoals[quarterId] || [];
+			return {
+				...prevGoals,
+				[quarterId]: quarterGoals.filter(
+					(goal: Goal) => goal.id !== goalId
+				),
+			};
+		});
+	};
+
 	const updateGoalOrder = (quarterId: string, reorderedGoals: Goal[]) => {
 		setGoals((prevGoals: GoalsState) => ({
 			...prevGoals,
@@ -110,6 +123,7 @@ export function GoalsProvider({ children }: { children: ReactNode }) {
 			value={{
 				goals,
 				addGoal,
+				removeGoal,
 				updateGoalOrder,
 				updateGoalCompletion,
 			}}
